@@ -38,8 +38,6 @@ pub trait Hooks<T> {
     async fn fetch_approvers(&self, message_id: &MessageId) -> Result<Option<Vec<MessageId>>, Self::Error>;
     /// Insert a new approver for a given message.
     async fn insert_approver(&self, message_id: MessageId, approver: MessageId) -> Result<(), Self::Error>;
-    /// Update the approvers list for a given message.
-    async fn update_approvers(&self, message_id: MessageId, approvers: &Vec<MessageId>) -> Result<(), Self::Error>;
 }
 
 /// Phoney default hooks that do nothing.
@@ -70,10 +68,6 @@ impl<T: Send + Sync> Hooks<T> for NullHooks<T> {
     async fn insert_approver(&self, _message_id: MessageId, _approver: MessageId) -> Result<(), Self::Error> {
         Ok(())
     }
-
-    async fn update_approvers(&self, _message_id: MessageId, _approvers: &Vec<MessageId>) -> Result<(), Self::Error> {
-        Ok(())
-    }
 }
 
 /// A foundational, thread-safe graph datastructure to represent the IOTA Tangle.
@@ -89,8 +83,8 @@ where
     pub(crate) cache_counter: AtomicU64,
     pub(crate) cache_queue: Mutex<LruCache<MessageId, u64>>,
 
-    pub(crate) _hooks: H,
-    pub(crate) hooks: NullHooks<T>,
+    pub(crate) hooks: H,
+    // pub(crate) hooks: NullHooks<T>,
 }
 
 impl<T, H: Hooks<T>> Default for Tangle<T, H>
@@ -117,8 +111,8 @@ where
             cache_counter: AtomicU64::new(0),
             cache_queue: Mutex::new(LruCache::new(CACHE_LEN + 1)),
 
-            _hooks: hooks,
-            hooks: NullHooks::default(),
+            hooks: hooks,
+            // hooks: NullHooks::default(),
         }
     }
 
@@ -132,7 +126,7 @@ where
 
     /// Return a reference to the storage hooks used by this tangle.
     pub fn hooks(&self) -> &H {
-        &self._hooks
+        &self.hooks
     }
 
     async fn insert_inner(&self, message_id: MessageId, message: Message, metadata: T) -> Option<MessageRef> {
