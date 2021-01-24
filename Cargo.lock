@@ -554,6 +554,7 @@ dependencies = [
  "criterion",
  "dashmap",
  "futures",
+ "fxhash",
  "log",
  "lru",
  "pollster",
@@ -561,6 +562,7 @@ dependencies = [
  "serde",
  "thiserror",
  "tokio",
+ "tokio-stream",
 ]
 
 [[package]]
