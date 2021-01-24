@@ -177,17 +177,13 @@ impl<B: StorageBackend> MsTangle<B> {
     }
 
     async fn pull_milestone(&self, idx: MilestoneIndex) -> Option<impl Deref<Target = Milestone> + '_> {
-        if true {
+        if let Some(milestone) = self.inner.hooks().get_milestone(&idx).await.unwrap_or_else(|e| {
+            info!("Failed to insert message {:?}", e);
             None
+        }) {
+            Some(self.milestones.entry(idx).or_insert(milestone))
         } else {
-            if let Some(milestone) = self.inner.hooks().get_milestone(&idx).await.unwrap_or_else(|e| {
-                info!("Failed to insert message {:?}", e);
-                None
-            }) {
-                Some(self.milestones.entry(idx).or_insert(milestone))
-            } else {
-                None
-            }
+            None
         }
     }
 
