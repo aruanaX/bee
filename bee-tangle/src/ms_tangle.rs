@@ -45,9 +45,15 @@ impl<B: StorageBackend> Hooks<MessageMetadata> for StorageHooks<B> {
         Ok(self.storage.fetch(msg).await?.zip(self.storage.fetch(msg).await?))
     }
 
-    async fn insert(&self, msg_id: MessageId, msg: Message, metadata: MessageMetadata) -> Result<(), Self::Error> {
-        trace!("Attempted to insert message {:?}", msg);
-        let _ = self.tx.send(HookOperation::Insert(msg_id, msg, metadata));
+    async fn insert_message(&self, msg_id: MessageId, msg: Message) -> Result<(), Self::Error> {
+        trace!("Attempted to insert message {:?}", msg_id);
+        let _ = self.tx.send(HookOperation::Message(msg_id, msg));
+        Ok(())
+    }
+
+    async fn insert_metadata(&self, msg_id: MessageId, metadata: MessageMetadata) -> Result<(), Self::Error> {
+        trace!("Attempted to insert metadata {:?}", msg_id);
+        let _ = self.tx.send(HookOperation::Metadata(msg_id, metadata));
         Ok(())
     }
 
@@ -77,7 +83,8 @@ impl<B: StorageBackend> StorageHooks<B> {
 }
 
 enum HookOperation {
-    Insert(MessageId, Message, MessageMetadata),
+    Message(MessageId, Message),
+    Metadata(MessageId, MessageMetadata),
     Approver(MessageId, MessageId),
 }
 
@@ -110,8 +117,10 @@ impl<B: StorageBackend> MsTangle<B> {
         task::spawn(async move {
             while let Some(op) = rx.recv().await {
                 match op {
-                    HookOperation::Insert(message_id, message, metadata) => {
+                    HookOperation::Message(message_id, message) => {
                         let _ = s.insert(&message_id, &message).await;
+                    }
+                    HookOperation::Metadata(message_id, metadata) => {
                         let _ = s.insert(&message_id, &metadata).await;
                     }
                     HookOperation::Approver(message_id, approver) => {
